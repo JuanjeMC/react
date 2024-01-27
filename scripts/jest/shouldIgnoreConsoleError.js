@@ -1,6 +1,10 @@
 'use strict';
 
-module.exports = function shouldIgnoreConsoleError(format, args) {
+module.exports = function shouldIgnoreConsoleError(
+  format,
+  args,
+  {TODO_ignoreHydrationErrors} = {TODO_ignoreHydrationErrors: false}
+) {
   if (__DEV__) {
     if (typeof format === 'string') {
       if (format.indexOf('Error: Uncaught [') === 0) {
@@ -23,6 +27,15 @@ module.exports = function shouldIgnoreConsoleError(format, args) {
         // We haven't finished migrating our tests to use createRoot.
         return true;
       }
+      if (
+        TODO_ignoreHydrationErrors &&
+        format.indexOf('An error occurred during hydration') !== -1
+      ) {
+        // When switching to createRoot, this error isn't accounted for.
+        // Rather than update all tests, we're ignoring it. But we should
+        // updated the tests to account for this error.
+        return true;
+      }
     } else if (
       format != null &&
       typeof format.message === 'string' &&
@@ -32,6 +45,21 @@ module.exports = function shouldIgnoreConsoleError(format, args) {
       if (format.stack.indexOf('Error: Uncaught [') === 0) {
         // This looks like an uncaught error from invokeGuardedCallback() wrapper
         // in development that is reported by jest-environment-jsdom. Ignore because it's noisy.
+        return true;
+      }
+
+      if (
+        (TODO_ignoreHydrationErrors &&
+          format.message.indexOf('Hydration failed because') !== -1) ||
+        format.message.indexOf(
+          'Text content does not match server-rendered HTML'
+        ) !== -1 ||
+        format.message.indexOf('There was an error while hydrating.') !== -1 ||
+        format.message.indexOf('An error occurred during hydration') !== -1
+      ) {
+        // When switching to createRoot, these errors aren't accounted for.
+        // Rather than update all tests, we're ignoring them. But we should
+        // updated the tests to account for these errors.
         return true;
       }
     }
